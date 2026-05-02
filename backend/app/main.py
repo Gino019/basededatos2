@@ -11,8 +11,8 @@ app = FastAPI(
 )
 
 # Set all CORS enabled origins
-if settings.BACKEND_CORS_ORIGINS:
-    allow_origins = settings.BACKEND_CORS_ORIGINS
+allow_origins = settings.cors_origins_list()
+if allow_origins:
     allow_credentials = True
     if len(allow_origins) == 1 and allow_origins[0] == "*":
         allow_credentials = False

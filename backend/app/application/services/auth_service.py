@@ -42,7 +42,7 @@ class AuthService:
             user = User(
                 email=email,
                 name=token_info.get("name", email.split("@")[0]),
-                role="admin" if email in settings.ADMIN_EMAILS else "user",
+                role="admin" if email in settings.admin_emails_list() else "user",
                 picture=token_info.get("picture"),
             )
             user = await self._repository.create(user)
