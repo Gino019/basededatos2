@@ -11,7 +11,7 @@ class MaskingRule(BaseModel):
     target_table: str
     target_column: str
     strategy: MaskingAlgorithm
-    strategy_options: Dict[str, Any] = {}
+    strategy_options: Optional[Dict[str, Any]] = None
     owner_id: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -17,13 +17,17 @@ if allow_origins:
     if len(allow_origins) == 1 and allow_origins[0] == "*":
         allow_credentials = False
 
-    app.add_middleware(
-        CORSMiddleware,
+    cors_kwargs = dict(
         allow_origins=allow_origins,
         allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    origin_regex = settings.cors_origin_regex()
+    if origin_regex:
+        cors_kwargs["allow_origin_regex"] = origin_regex
+
+    app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(connections.router, prefix=settings.API_V1_STR)

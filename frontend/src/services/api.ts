@@ -7,6 +7,7 @@ import type {
 
 /**
  * En `npm run dev`, por defecto se llama al backend en :8000 (CORS) para no depender del proxy /api.
+ * Debe coincidir con `uvicorn ... --port 8000` y `scripts/start-local.ps1`.
  * En producción (`vite build`), por defecto `/api/v1` (mismo origen o proxy reverso).
  * Anula con VITE_API_URL (p. ej. otro puerto).
  */

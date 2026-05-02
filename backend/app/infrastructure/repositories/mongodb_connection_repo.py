@@ -17,8 +17,9 @@ class MongoDBConnectionRepository(ConnectionRepository):
     async def create(self, entity: ConnectionConfig) -> ConnectionConfig:
         entity_dict = entity.model_dump()
         entity_dict["id"] = entity_dict.get("id") or str(uuid.uuid4())
-        entity_dict["additional_options"] = json.dumps(entity_dict.get("additional_options", {}))
-        await self.collection.insert_one(entity_dict)
+        db_doc = entity_dict.copy()
+        db_doc["additional_options"] = json.dumps(db_doc.get("additional_options") or {})
+        await self.collection.insert_one(db_doc)
         return ConnectionConfig(**entity_dict)
 
     async def get_by_id(self, id: str) -> Optional[ConnectionConfig]:
@@ -38,8 +39,9 @@ class MongoDBConnectionRepository(ConnectionRepository):
 
     async def update(self, id: str, entity: ConnectionConfig) -> Optional[ConnectionConfig]:
         entity_dict = entity.model_dump()
-        entity_dict["additional_options"] = json.dumps(entity_dict.get("additional_options", {}))
-        result = await self.collection.update_one({"id": id}, {"$set": entity_dict})
+        db_doc = entity_dict.copy()
+        db_doc["additional_options"] = json.dumps(db_doc.get("additional_options") or {})
+        result = await self.collection.update_one({"id": id}, {"$set": db_doc})
         if result.modified_count:
             return ConnectionConfig(**entity_dict)
         return None

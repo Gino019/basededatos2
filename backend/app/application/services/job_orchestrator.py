@@ -89,7 +89,10 @@ class JobOrchestrator:
                 client = PostgresClient(dsn)
                 records_processed = await self._process_postgres(client, rules)
             else:
-                uri = f"mongodb://{connection.username}:{connection.password}@{connection.host}:{connection.port}/"
+                import urllib.parse
+                enc_user = urllib.parse.quote_plus(connection.username)
+                enc_pass = urllib.parse.quote_plus(connection.password)
+                uri = f"mongodb+srv://{enc_user}:{enc_pass}@{connection.host}/"
                 client = MongoClient(uri, connection.database)
                 records_processed = await self._process_mongodb(client, rules)
 
