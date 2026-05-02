@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Dict, Any
 from app.domain.value_objects.database_type import DatabaseType
 from app.domain.value_objects.masking_algorithm import MaskingAlgorithm
@@ -43,8 +43,16 @@ class JobResponse(BaseModel):
     error_message: Optional[str] = None
     records_processed: int
 
-class GoogleAuthRequest(BaseModel):
-    id_token: str
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=256)
+    name: str = Field(min_length=1, max_length=120)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=256)
+
 
 class UserResponse(BaseModel):
     id: str

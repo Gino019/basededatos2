@@ -59,7 +59,7 @@ class JobOrchestrator:
         job = await self._job_repository.get_by_id(id)
         if not job or getattr(job, "owner_id", None) != owner_id:
             raise ResourceNotFoundError("Job", id)
-        return JobResponse.model_validate(job)
+        return JobResponse.model_validate(job.model_dump())
 
     async def run_job(self, job_id: str, owner_id: str) -> None:
         job = await self._job_repository.get_by_id(job_id)

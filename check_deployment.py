@@ -21,7 +21,7 @@ def check_python_version():
 def check_dependencies():
     """Verifica dependencias del backend"""
     try:
-        import fastapi, uvicorn, pydantic, motor, asyncpg
+        import fastapi, uvicorn, pydantic, motor, asyncpg, bcrypt, email_validator
         print("✅ Dependencias del backend instaladas")
         return True
     except ImportError as e:
@@ -41,18 +41,18 @@ def check_env_file():
     print("✅ Archivo .env encontrado")
     return True
 
-def check_google_client_id():
-    """Verifica configuración de Google OAuth"""
+def check_secret_key():
+    """Verifica que SECRET_KEY no sea el valor de ejemplo."""
     env_path = Path("backend/.env")
     if not env_path.exists():
         return False
 
-    with open(env_path) as f:
+    with open(env_path, encoding="utf-8") as f:
         content = f.read()
-        if "GOOGLE_CLIENT_ID=" not in content or "tu_google_client_id" in content:
-            print("⚠️  GOOGLE_CLIENT_ID no configurado")
-            return False
-    print("✅ Google Client ID configurado")
+    if "SECRET_KEY=tu_clave_secreta" in content or "SECRET_KEY=changeme" in content:
+        print("⚠️  SECRET_KEY sigue siendo el valor de ejemplo (cámbialo en producción)")
+        return False
+    print("✅ SECRET_KEY personalizado")
     return True
 
 def check_mongodb_uri():
@@ -77,7 +77,7 @@ def main():
         check_python_version,
         check_dependencies,
         check_env_file,
-        check_google_client_id,
+        check_secret_key,
         check_mongodb_uri,
     ]
 

@@ -5,7 +5,16 @@ import type {
   Summary, User, AuthResponse
 } from '../types';
 
-const BASE = import.meta.env.VITE_API_URL || '/api/v1';
+/**
+ * En `npm run dev`, por defecto se llama al backend en :8000 (CORS) para no depender del proxy /api.
+ * En producción (`vite build`), por defecto `/api/v1` (mismo origen o proxy reverso).
+ * Anula con VITE_API_URL (p. ej. otro puerto).
+ */
+export const RESOLVED_API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8000/api/v1' : '/api/v1');
+
+const BASE = RESOLVED_API_BASE;
 const TOKEN_KEY = 'enmask_access_token';
 
 export function getStoredToken() {
@@ -20,6 +29,32 @@ export function clearStoredToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Identidad del API (sin token). Útil para detectar otro servicio en el mismo puerto. */
+export type ApiMeta = {
+  service: string;
+  auth: string;
+  api_prefix: string;
+  has_register?: boolean;
+};
+
+export async function fetchApiMeta(): Promise<ApiMeta | null> {
+  const url = `${BASE.replace(/\/$/, '')}/meta`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return r.json();
+  } catch {
+    return null;
+  }
+}
+
+function apiBaseHint(): string {
+  if (BASE.startsWith('/')) {
+    return ' Sirve el front con npm run preview (proxy /api) o define VITE_API_URL al hacer build.';
+  }
+  return ' Comprueba que uvicorn esté en marcha (p. ej. puerto 8000) y que BACKEND_CORS_ORIGINS en el backend incluya el origen de esta página (localhost y 127.0.0.1 con el puerto del front).';
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken();
   const headers: Record<string, string> = {
@@ -29,21 +64,49 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE}${path}`, {
-    headers,
-    ...init,
-  });
+  const url = `${BASE}${path}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers,
+      ...init,
+    });
+  } catch (e) {
+    throw new Error(`${(e as Error).message || 'Network error'}.${apiBaseHint()}`);
+  }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(error.detail ?? 'Request failed');
+    const detail = error.detail;
+    let message: string;
+    if (typeof detail === 'string') {
+      message = detail;
+    } else if (Array.isArray(detail)) {
+      message = detail.map((d: { msg?: string }) => d.msg ?? '').filter(Boolean).join('; ') || 'Request failed';
+    } else {
+      message = 'Request failed';
+    }
+    if (res.status === 404 && /^not\s*found$/i.test(message.trim())) {
+      message = `Not Found (no API en ${url.split('?')[0]}).${apiBaseHint()}`;
+    }
+    throw new Error(message);
   }
   if (res.status === 204) return undefined as unknown as T;
   return res.json();
 }
 
 // ---- Auth ----
-export const signInWithGoogle = (idToken: string) =>
-  request<AuthResponse>('/auth/google', { method: 'POST', body: JSON.stringify({ id_token: idToken }) });
+export const registerWithPassword = (email: string, password: string, name: string) =>
+  request<AuthResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, name }),
+  });
+
+export const loginWithPassword = (email: string, password: string) =>
+  request<AuthResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
 export const getCurrentUser = () => request<User>('/auth/me');
 
 // ---- Connections ----

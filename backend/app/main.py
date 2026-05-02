@@ -31,6 +31,23 @@ app.include_router(rules.router, prefix=settings.API_V1_STR)
 app.include_router(jobs.router, prefix=settings.API_V1_STR)
 app.include_router(reports.router, prefix=settings.API_V1_STR)
 
+
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    """Comprueba que el proceso es el backend Enmask (evita confundir otro servicio en :8000)."""
+    return {
+        "status": "ok",
+        "service": "enmask-backend",
+        "api_prefix": settings.API_V1_STR,
+    }
+
+
+@app.get(f"{settings.API_V1_STR}/meta", tags=["meta"])
+def api_meta():
+    """Expuesto al front para verificar que /api/v1 corresponde a este proyecto (auth email/contraseña)."""
+    return {
+        "service": "enmask-backend",
+        "auth": "email_password",
+        "api_prefix": settings.API_V1_STR,
+        "has_register": True,
+    }

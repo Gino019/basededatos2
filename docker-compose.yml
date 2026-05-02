@@ -29,7 +29,7 @@ services:
     environment:
       - REPOSITORY_BACKEND=memory
       - API_V1_STR=/api/v1
-      - BACKEND_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - BACKEND_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173
       - POSTGRES_META_DSN=postgresql+asyncpg://postgres:postgres@postgres:5432/enmask_meta
       - MONGODB_META_URI=mongodb://mongodb:27017
       - METADATA_DATABASE=enmask_meta

@@ -17,10 +17,13 @@ def _parse_str_list(raw: str) -> List[str]:
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Enmask SDM Platform"
     API_V1_STR: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    BACKEND_CORS_ORIGINS: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:4173,http://127.0.0.1:4173"
+    )
     API_KEY: str = ""
     SECRET_KEY: str = "changemeplease"
-    GOOGLE_CLIENT_ID: str = ""
     ADMIN_EMAILS: str = ""
     REPOSITORY_BACKEND: str = "memory"
     POSTGRES_META_DSN: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/enmask_meta"

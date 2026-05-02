@@ -1,206 +1,97 @@
-# 🎭 Enmask — Static Data Masking Platform
+# Enmask — Static Data Masking Platform
 
-> A production-ready, non-containerized Static Data Masking (SDM) platform for hybrid **PostgreSQL** and **MongoDB** environments.
+Plataforma de enmascaramiento estático de datos para **PostgreSQL** y **MongoDB**, con API en FastAPI y panel en React.
+
+**Enfoque actual:** ejecutar y probar todo en **localhost**. Las opciones de despliegue (Railway, Docker, etc.) están al final, como referencia cuando las necesites.
 
 ---
 
-## Architecture Overview
+## Ejecutar en localhost
 
-```
-EnmascaradoDatos/
-├── backend/
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── app/
-│       ├── main.py                        # FastAPI entrypoint
-│       ├── core/                          # Config, logging, exceptions
-│       ├── domain/
-│       │   ├── entities/                  # Connection, MaskingRule, MaskingJob
-│       │   └── interfaces/                # Repository & Strategy ABCs
-│       ├── infrastructure/
-│       │   ├── db/                        # postgres_client, mongodb_client
-│       │   ├── masking/                   # Substitution, Hashing, Redaction, Nullification
-│       │   └── repositories/              # MemoryRepository (generic)
-│       ├── application/
-│       │   ├── schemas.py                 # Pydantic DTOs
-│       │   └── services/                  # connection_service, masking_service, job_orchestrator
-│       └── api/
-│           ├── deps.py
-│           └── routers/                   # connections, rules, jobs, reports
-└── frontend/
-    ├── index.html
-    ├── vite.config.ts
-    └── src/
-        ├── main.tsx / App.tsx             # React + react-router-dom
-        ├── index.css                      # Premium design system
-        ├── types/                         # TypeScript interfaces
-        ├── services/api.ts                # REST API calls
-        ├── hooks/useToast.ts              # Toast notification hook
-        ├── components/                    # Sidebar, ToastContainer
-        └── pages/                         # Dashboard, Connections, Rules, Jobs
+### Requisitos
+
+| Herramienta | Versión recomendada |
+|-------------|---------------------|
+| Python      | 3.12+               |
+| Node.js     | 20+                 |
+| npm         | 9+                  |
+
+PostgreSQL o MongoDB en tu máquina solo hacen falta cuando quieras **lanzar jobs reales** contra una base; el propio API puede usar metadatos en memoria (`REPOSITORY_BACKEND=memory`).
+
+### Opción rápida (Windows)
+
+Desde la **raíz del repo**:
+
+```powershell
+.\scripts\start-local.cmd
 ```
 
----
+Si prefieres el `.ps1` y PowerShell te dice que la ejecución de scripts está deshabilitada, usa una sola vez:
 
-## 🚀 Despliegue en Railway (Recomendado)
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
+```
 
-### 1. Preparar cuentas
-- [Railway.app](https://railway.app) - Crea cuenta gratuita
-- [MongoDB Atlas](https://cloud.mongodb.com) - Cluster gratuito
-- [Google Cloud Console](https://console.cloud.google.com) - Para OAuth
+(Opcional y permanente solo para tu usuario: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.)
 
-### 2. Configurar MongoDB Atlas
-1. Crea cluster gratuito
-2. Crea usuario de base de datos
-3. Whitelist IP: `0.0.0.0/0` (para Railway)
-4. Copia la connection string: `mongodb+srv://usuario:password@cluster.mongodb.net/enmask_meta`
+Se abren dos ventanas: API en el puerto **8000** y Vite en **5173**. Luego abre **http://localhost:5173**, regístrate e inicia sesión.
 
-### 3. Configurar Google OAuth
-1. Ve a [Google Cloud Console](https://console.cloud.google.com)
-2. Crea proyecto → APIs & Services → Credentials
-3. Crea "OAuth 2.0 Client ID" → Web application
-4. Authorized redirect URIs: `https://tu-backend.railway.app/api/v1/auth/google/callback`
-5. Copia Client ID
-
-### 4. Desplegar Backend
-1. `git clone <tu-repo>` o sube el código
-2. En Railway: New Project → Deploy from GitHub
-3. Selecciona la carpeta `backend/`
-4. Variables de entorno (Environment Variables):
-   ```
-   SECRET_KEY=tu_clave_muy_segura
-   GOOGLE_CLIENT_ID=tu_google_client_id
-   ADMIN_EMAILS=tu_email@example.com
-   REPOSITORY_BACKEND=mongodb
-   MONGODB_META_URI=mongodb+srv://...
-   BACKEND_CORS_ORIGINS=https://tu-frontend.railway.app
-   ```
-5. Deploy → Copia la URL del backend
-
-### 5. Desplegar Frontend
-1. En Railway: New Project → Deploy from GitHub
-2. Selecciona la carpeta `frontend/`
-3. Variables de entorno:
-   ```
-   VITE_API_URL=https://tu-backend.railway.app/api/v1
-   VITE_GOOGLE_CLIENT_ID=tu_google_client_id
-   ```
-4. Deploy → ¡Listo!
-
-### 6. Configurar CORS final
-- En el backend de Railway, actualiza `BACKEND_CORS_ORIGINS` con la URL exacta del frontend
-
----
-
-## 🏃‍♂️ Desarrollo Local
-| npm        | ≥ 9       |
-
-> **Optional**: A running PostgreSQL or MongoDB instance (only required when actually running masking jobs).
-
----
-
-## 1 — Backend Setup
-
-### 1.1 Create a virtual environment
+### Backend (manual)
 
 ```powershell
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-### 1.2 Install dependencies
-
-```powershell
 pip install -r requirements.txt
-```
-
-### 1.3 Configure environment variables
-
-```powershell
 Copy-Item .env.example .env
-# Edit .env if needed (CORS origins, etc.)
-```
-
-The default `.env` works out-of-the-box for local development.
-
-### 1.4 Run the API server
-
-```powershell
+# Edita .env si hace falta (SECRET_KEY, CORS, etc.)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-- **API Base**: `http://localhost:8000/api/v1`
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- API: **http://localhost:8000/api/v1**
+- Documentación interactiva: **http://localhost:8000/docs**
+- Comprobación rápida: **http://localhost:8000/health** (debe incluir `"service": "enmask-backend"`)
 
----
+### Frontend (manual)
 
-## 2 — Frontend Setup
-
-### 2.1 Install Node dependencies
+En otra terminal:
 
 ```powershell
-cd ..\frontend
+cd frontend
 npm install
-```
-
-### 2.2 Run the dev server
-
-```powershell
 npm run dev
 ```
 
-- **Frontend**: `http://localhost:5173`
+- Interfaz: **http://localhost:5173**
 
-The Vite dev server is pre-configured to proxy `/api` calls to `http://localhost:8000`, so **no CORS issues** during development.
-
----
-
-## 3 — End-to-End Usage
-
-### Step 1 — Add a Connection
-
-Navigate to **Connections** → click **Add Connection**. Fill in your PostgreSQL or MongoDB credentials.
-
-**PostgreSQL example:**
-```
-Type:     postgres
-Host:     localhost
-Port:     5432
-Database: mydb
-Username: postgres
-Password: secret
-```
-
-### Step 2 — Create Masking Rules
-
-Navigate to **Masking Rules** → click **New Rule**. Define which table/collection and column to mask.
-
-**Available strategies:**
-
-| Strategy      | Description                                         |
-|---------------|-----------------------------------------------------|
-| `hashing`     | SHA-256 deterministic hash (same input → same output)|
-| `substitution`| Replace with realistic Faker data (name, email, etc.)|
-| `redaction`   | Replace all characters with `*`                     |
-| `nullification`| Set the field value to `NULL` / `None`             |
-
-### Step 3 — Run a Job
-
-Navigate to **Jobs** → click **New Job**. Select a connection and the rules to apply → click **▶ Run**. The job runs in the background and the status auto-refreshes.
+En modo desarrollo, el cliente usa por defecto **http://127.0.0.1:8000/api/v1** (CORS). Si el backend está en otro puerto, define `VITE_API_URL` en `frontend/.env.local` (ver `frontend/.env.example`).
 
 ---
 
-## 4 — Optional: PostgreSQL Sample Schema
+## Uso en local
 
-If you want to test with PostgreSQL, run this in HeidiSQL or psql:
+1. **Connections** — Alta de credenciales PostgreSQL o MongoDB (ej. `localhost`, puerto, base, usuario).
+2. **Masking Rules** — Tabla/colección, columna y estrategia (hashing, substitution, redaction, nullification).
+3. **Jobs** — Enlaza conexión + reglas y ejecuta el job.
+
+**PostgreSQL de ejemplo:**
+
+```
+Tipo:      postgres
+Host:      localhost
+Puerto:    5432
+Base:      mydb
+Usuario:   postgres
+Contraseña: (la tuya)
+```
+
+---
+
+## Ejemplo SQL (opcional)
 
 ```sql
 CREATE DATABASE masking_demo;
-
 \c masking_demo
-
 CREATE TABLE users (
     id       SERIAL PRIMARY KEY,
     name     TEXT NOT NULL,
@@ -208,67 +99,63 @@ CREATE TABLE users (
     phone    TEXT,
     address  TEXT
 );
-
 INSERT INTO users (name, email, phone, address) VALUES
-  ('Alice Smith',  'alice@example.com',  '+1-555-0100', '123 Maple St'),
-  ('Bob Johnson',  'bob@example.com',    '+1-555-0101', '456 Oak Ave'),
-  ('Carol White',  'carol@example.com',  '+1-555-0102', '789 Pine Rd');
+  ('Alice Smith', 'alice@example.com', '+1-555-0100', '123 Maple St');
 ```
 
-Create rules targeting table `users` columns `name`, `email`, `phone` with strategies of your choice.
+Crea reglas sobre la tabla `users` y columnas que quieras enmascarar.
 
 ---
 
-## 5 — Optional: MongoDB Sample Data
+## Ejemplo MongoDB (opcional)
 
 ```javascript
 use masking_demo
-
 db.customers.insertMany([
-  { name: "Alice Smith",  email: "alice@example.com", phone: "+1-555-0100" },
-  { name: "Bob Johnson",  email: "bob@example.com",   phone: "+1-555-0101" },
+  { name: "Alice Smith", email: "alice@example.com", phone: "+1-555-0100" },
 ])
 ```
 
-Create rules targeting collection `customers` columns `name`, `email`.
-
 ---
 
-## API Reference
+## Estructura del repo
 
-| Method | Endpoint                        | Description              |
-|--------|---------------------------------|--------------------------|
-| GET    | `/api/v1/connections/`          | List all connections     |
-| POST   | `/api/v1/connections/`          | Create a connection      |
-| DELETE | `/api/v1/connections/{id}`      | Delete a connection      |
-| GET    | `/api/v1/rules/`                | List all rules           |
-| POST   | `/api/v1/rules/`                | Create a masking rule    |
-| DELETE | `/api/v1/rules/{id}`            | Delete a rule            |
-| GET    | `/api/v1/jobs/`                 | List all jobs            |
-| POST   | `/api/v1/jobs/`                 | Create a job             |
-| POST   | `/api/v1/jobs/{id}/run`         | Run a job (background)   |
-| GET    | `/api/v1/jobs/{id}`             | Get job status           |
-| GET    | `/api/v1/reports/summary`       | Get platform summary     |
-
----
-
-## Notes
-
-- **State is in-memory**: Connections, rules, and jobs are stored in memory and reset on server restart. For persistence, swap `MemoryRepository` with a SQLite/JSON file-backed implementation.
-- **Masking is destructive**: Running a job will permanently update the target database rows/documents. Test on a copy of your data first.
-- **Determinism**: The `hashing` strategy produces the same output for the same input + salt, making it suitable for referential integrity across tables.
-
----
-
-## Docker Compose
-
-Run the full stack with PostgreSQL, MongoDB, backend, and frontend:
-
-```powershell
-cd ..\EnmascaradoDatos
-docker-compose up --build
+```
+EnmascaradoDatos/
+├── backend/          # FastAPI, uvicorn app.main:app
+├── frontend/         # React + Vite
+├── scripts/          # start-local.ps1 (Windows)
+└── docker-compose.yml  # solo si más adelante quieres contenedores
 ```
 
-Then:
-- Backend: `http://localhost:8000`
-- Frontend: `http://localhost:5173`
+---
+
+## Referencia API (resumen)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/v1/meta` | Identidad del servicio (localhost / diagnóstico) |
+| POST | `/api/v1/auth/register` | Registro |
+| POST | `/api/v1/auth/login` | Login |
+| GET/POST | `/api/v1/connections/` | Conexiones |
+| GET/POST | `/api/v1/rules/` | Reglas |
+| GET/POST | `/api/v1/jobs/` | Jobs |
+| POST | `/api/v1/jobs/{id}/run` | Ejecutar job |
+
+Detalle completo en **http://localhost:8000/docs** con el backend en marcha.
+
+---
+
+## Notas
+
+- Con **`REPOSITORY_BACKEND=memory`**, usuarios, conexiones y reglas se pierden al **reiniciar** el proceso del backend. Para persistencia en local puedes configurar Postgres/Mongo en `backend/.env`.
+- Los jobs **modifican datos** en la base objetivo; prueba primero sobre copias o entornos de prueba.
+- La estrategia **hashing** es determinista (misma entrada + sal → mismo valor), útil para integridad referencial.
+
+---
+
+## Más adelante: despliegue (opcional)
+
+Cuando quieras publicar el proyecto en la nube o usar contenedores, revisa **`backend/.env.example`** (variables de producción, CORS, `SECRET_KEY`, metadata en Mongo/Postgres). En el repo hay **`docker-compose.yml`** para levantar Postgres, Mongo, backend y frontend juntos; no es necesario para desarrollar en localhost.
+
+Pasos tipo Railway u otros hosts puedes documentarlos en tu propio checklist de despliegue cuando toque; el flujo diario de este README es **solo local**.

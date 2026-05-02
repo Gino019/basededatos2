@@ -1,12 +1,12 @@
 import base64
 import hashlib
 import hmac
-import httpx
 import json
 import time
 from typing import Dict, Optional
 
 from app.core.config import settings
+from app.core.passwords import hash_password, verify_password
 from app.domain.entities.user import User
 from app.domain.interfaces.repository import UserRepository
 from app.infrastructure.repositories.user_repository import user_repository
@@ -31,29 +31,34 @@ class AuthService:
     async def get_user_by_email(self, email: str) -> Optional[User]:
         return await self._repository.get_by_email(email)
 
-    async def authenticate_google(self, id_token: str) -> Dict[str, object]:
-        token_info = await self._verify_google_token(id_token)
-        email = token_info.get("email")
-        if not email:
-            raise ValueError("Google token did not contain an email address.")
+    async def register_local(self, email: str, password: str, name: str) -> Dict[str, object]:
+        normalized = email.strip().lower()
+        if await self.get_user_by_email(normalized):
+            raise ValueError("EMAIL_TAKEN")
 
-        user = await self.get_user_by_email(email)
-        if user is None:
-            user = User(
-                email=email,
-                name=token_info.get("name", email.split("@")[0]),
-                role="admin" if email in settings.admin_emails_list() else "user",
-                picture=token_info.get("picture"),
-            )
-            user = await self._repository.create(user)
-        else:
-            updated_data = user.model_dump()
-            updated_data["name"] = token_info.get("name", user.name)
-            updated_data["picture"] = token_info.get("picture", user.picture)
-            user = await self._repository.update(user.id, User(**updated_data))
+        display_name = name.strip() or normalized.split("@")[0]
+        role = "admin" if normalized in {e.strip().lower() for e in settings.admin_emails_list()} else "user"
 
+        user = User(
+            email=normalized,
+            name=display_name,
+            role=role,
+            picture=None,
+            password_hash=hash_password(password),
+        )
+        user = await self._repository.create(user)
+        return self._issue_auth_payload(user)
+
+    async def authenticate_local(self, email: str, password: str) -> Dict[str, object]:
+        normalized = email.strip().lower()
+        user = await self.get_user_by_email(normalized)
+        if user is None or not verify_password(password, user.password_hash):
+            raise ValueError("INVALID_CREDENTIALS")
+        return self._issue_auth_payload(user)
+
+    def _issue_auth_payload(self, user: User) -> Dict[str, object]:
         access_token = self.create_access_token(
-            subject=user.id,
+            subject=user.id or "",
             email=user.email,
             role=user.role,
         )
@@ -62,21 +67,6 @@ class AuthService:
             "token_type": "bearer",
             "user": user,
         }
-
-    async def _verify_google_token(self, id_token: str) -> Dict[str, object]:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                "https://oauth2.googleapis.com/tokeninfo",
-                params={"id_token": id_token},
-            )
-        if response.status_code != 200:
-            raise ValueError("Invalid Google token.")
-        data = response.json()
-        if data.get("aud") != settings.GOOGLE_CLIENT_ID:
-            raise ValueError("Google token was not issued for this application.")
-        if data.get("email_verified") not in ["true", True]:
-            raise ValueError("Google email is not verified.")
-        return data
 
     def create_access_token(self, subject: str, email: str, role: str, expires_in: int = 3600) -> str:
         if not settings.SECRET_KEY:

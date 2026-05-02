@@ -8,6 +8,7 @@ import Jobs from './pages/Jobs';
 import Login from './pages/Login';
 import { useToast } from './hooks/useToast';
 import { AuthProvider, ProtectedRoute, useAuth } from './hooks/useAuth';
+import { RESOLVED_API_BASE } from './services/api';
 
 const topbarMeta: Record<string, { title: string; desc: string }> = {
   '/':            { title: 'Dashboard',      desc: 'Platform overview and quick stats' },
@@ -29,7 +30,8 @@ function Topbar() {
       </div>
       <div className="topbar-actions">
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          API: <code style={{ color: 'var(--color-accent-2)' }}>{import.meta.env.VITE_API_URL || 'localhost:8001'}</code>
+          API:{' '}
+          <code style={{ color: 'var(--color-accent-2)' }}>{RESOLVED_API_BASE}</code>
         </span>
         {user && (
           <div className="user-badge">

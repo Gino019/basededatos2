@@ -1,12 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { getCurrentUser, signInWithGoogle, setStoredToken, clearStoredToken } from '../services/api';
+import { getCurrentUser, loginWithPassword, registerWithPassword, setStoredToken, clearStoredToken } from '../services/api';
 import type { User } from '../types';
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  loginWithGoogle: (idToken: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<User>;
+  signUp: (email: string, password: string, name: string) => Promise<User>;
   logout: () => void;
 }
 
@@ -31,21 +32,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadUser();
   }, []);
 
-  const loginWithGoogle = async (idToken: string) => {
-    const auth = await signInWithGoogle(idToken);
+  const login = useCallback(async (email: string, password: string) => {
+    const auth = await loginWithPassword(email, password);
     setStoredToken(auth.access_token);
     setUser(auth.user);
     return auth.user;
-  };
+  }, []);
 
-  const logout = () => {
+  const signUp = useCallback(async (email: string, password: string, name: string) => {
+    const auth = await registerWithPassword(email, password, name);
+    setStoredToken(auth.access_token);
+    setUser(auth.user);
+    return auth.user;
+  }, []);
+
+  const logout = useCallback(() => {
     clearStoredToken();
     setUser(null);
-  };
+  }, []);
 
   const value = useMemo(
-    () => ({ user, loading, loginWithGoogle, logout }),
-    [user, loading],
+    () => ({ user, loading, login, signUp, logout }),
+    [user, loading, login, signUp, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
